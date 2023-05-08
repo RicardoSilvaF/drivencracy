@@ -1,7 +1,6 @@
 import { db } from "../database/database.config.js"
 import dayjs from "dayjs";
 import { ObjectId} from "mongodb";
-import diff from "dayjs"
 
 export async function createPoll(req,res){
     const {title, expireAt} = req.body;
@@ -68,3 +67,18 @@ export async function createChoice(req,res){
         res.status(500).send(err.message);
     }
 } 
+
+
+export async function getChoices(req,res){
+    const {id} = req.params;
+    try{
+        const choiceList = await db.collection("choices").find({ pollId: id}).toArray();
+        if(!choiceList){
+            return res.sendStatus(404);
+        }
+        return res.send(choiceList);
+    }
+    catch(err){
+        res.status(500).send(err.message);
+    }
+}
