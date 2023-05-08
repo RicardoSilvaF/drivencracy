@@ -82,3 +82,34 @@ export async function getChoices(req,res){
         res.status(500).send(err.message);
     }
 }
+
+
+export async function postVote(req, res){
+    const {id} = req.params;
+
+    try{
+        const choiceSelected = await db.collection("choices").findOne({ _id: new ObjectId(id)});
+        if(!choiceSelected){ // vote option exists validation
+            return res.sendStatus(404);
+        }
+
+        const now = dayjs();
+        const pollSelected = await db.collection("polls").findOne({_id: new ObjectId(choiceSelected.pollId)});
+        const pollExpiredAt = dayjs(pollSelected.expireAt); // finished polls validation
+        if (pollExpiredAt.isBefore(now)){
+            return res.sendStatus(403);
+        }
+
+        const vote = {
+            votedAt: now.format("YYYY-MM-DD HH:mm"),
+            pollId: pollSelected._id.toString(),
+            choiceId: id
+        }
+        await db.collection("votes").insertOne(vote);
+        return res.sendStatus(201);
+    }
+    catch(err){
+        res.status(500).send(err.message);
+    }
+
+}
