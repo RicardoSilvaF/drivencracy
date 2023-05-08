@@ -100,10 +100,15 @@ export async function postVote(req, res){
             return res.sendStatus(403);
         }
 
+        let voteCounter = (await db.collection("votes").find({choiceId: id}).toArray()).length;
+        voteCounter +=1;
         const vote = {
             votedAt: now.format("YYYY-MM-DD HH:mm"),
             pollId: pollSelected._id.toString(),
-            choiceId: id
+            pollTitle: pollSelected.title,
+            choiceId: id ,
+            choiceTitle: choiceSelected.title,
+            voteNumber: voteCounter
         }
         await db.collection("votes").insertOne(vote);
         return res.sendStatus(201);
@@ -111,5 +116,27 @@ export async function postVote(req, res){
     catch(err){
         res.status(500).send(err.message);
     }
+}
 
+
+export async function getVotes(req,res){
+    const {id} = req.params;
+
+    const pollSelected = await db.collection("polls").findOne({_id: new ObjectId(id)});
+    if(!pollSelected){
+        return res.sendStatus(404);
+    }
+
+    let mostVoteds = await db.collection("votes").find({pollId: id}).sort({voteNumber: 1}).toArray();
+    let mostVoted = mostVoteds[mostVoteds.length-1];
+    let result = {
+        _id: mostVoted.choiceId,
+	    title: mostVoted.pollTitle,
+	    expireAt: pollSelected.expireAt,
+	    result : {
+            title: mostVoted.choiceTitle,
+            votes: mostVoted.voteNumber
+	    }
+    }
+    return res.send(result);
 }
